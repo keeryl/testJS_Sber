@@ -4,7 +4,8 @@ console.log("Let's rock")
 console.log(encoded, translations)
 
 function decode() {
-    const uniqeId = {uniqe: []};
+    const uniqesSet = new Set();
+    const uniqeId = {uniqe: uniqesSet};
     const res = encoded.map(item => {
         for (let key in item) {
             const value = item[key];
@@ -12,7 +13,7 @@ function decode() {
                 if (translations.hasOwnProperty(value)) {
                     item[key] = translations[value];
                 } else {
-                    uniqeId.uniqe.push(value);
+                    uniqesSet.add(value);
                 }
             }
         }
