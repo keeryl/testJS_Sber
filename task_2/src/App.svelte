@@ -1,47 +1,122 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import { onMount } from 'svelte';
+  let currencies = [];
+  let rates;
+  let baseCurrencyVal = 0;
+  let currencyVal = 0;
+  let baseCurrency = '';
+  let currency = '';
+  let isLoading = true;
+  let isError = false;
+
+  onMount(() => {
+    fetch('https://open.er-api.com/v6/latest/USD')
+      .then(res => {
+        isLoading = true;
+        if (res) {
+          return res.json();
+        }
+      })
+      .then(data => {
+        if (data && data.result === 'success') {
+          currencies = Object.keys(data.rates);
+          rates = data.rates;
+          baseCurrency = currencies[0];
+          currency = 'RUB';
+          setTimeout(() => {
+            isLoading = false;
+          }, 500);
+        } else {
+          isError = true;
+          isLoading = false;
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        isError = true;
+      })
+  });
+
+  function handleSelectBaseCurrency() {
+    isLoading = true;
+    baseCurrencyVal = 0;
+    currencyVal = 0;
+    fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`)
+      .then(res => {
+        if (res) {
+          return res.json();
+        }
+      })
+      .then(data => {
+        if (data && data.result === 'success') {
+          rates = data.rates;
+          setTimeout(() => {
+            isLoading = false;
+          }, 500);
+        } else {
+          isError = true;
+          isLoading = false;
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        isError = true;
+      })
+  }
+
+  function handleSelectCurrency() {
+    handleBaseCurrencyVal();
+  }
+
+  function handleBaseCurrencyVal() {
+    currencyVal = Math.round(baseCurrencyVal * rates[currency] * 100) / 100 ;
+  }
+  function handleCurrencyVal(e) {
+    baseCurrencyVal = Math.round(currencyVal / rates[currency] * 100) / 100;
+  }
 </script>
 
-<main>
+<main class="main">
+  {#if isLoading}
+    <p>Loading...</p>
+  {:else if isError}
+    <p>Произошла ошибка, перезагрузите страницу</p>   
+  {:else}
   <div>
-    <a href="https://vitejs.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
+    <select bind:value={baseCurrency} on:change={handleSelectBaseCurrency}>
+      {#each currencies as currency}
+        <option value={currency}>
+          {currency}
+        </option>
+      {/each}
+    </select>
+    <select bind:value={currency} on:change={handleSelectCurrency}>
+      {#each currencies as currency}
+        <option value={currency}>
+          {currency}
+        </option>
+      {/each}
+    </select>
   </div>
-  <h1>Vite + Svelte</h1>
-
-  <div class="card">
-    <Counter />
+  <div>
+    <input min="0" type="number" bind:value={baseCurrencyVal} on:input={handleBaseCurrencyVal}/>
+    <input min="0" type="number" bind:value={currencyVal} on:input={handleCurrencyVal}/>
   </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
+  {/if}
 </main>
 
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+  select {
+    width: 100%;
   }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
+  div {
+    display: flex;
+    gap: 15px;
   }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
-  }
+
 </style>
